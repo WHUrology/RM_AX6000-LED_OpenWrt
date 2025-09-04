@@ -9,7 +9,31 @@
 #
 ###############改名字##############
 name: Redmi-AX6000-padavanonly
-# ... 其他 on 和 env 部分保持不变 ...
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+#  schedule:
+#    - cron: 0 16 * * *
+
+env:
+  REPO_URL: https://github.com/hanwckf/immortalwrt-mt798x
+  REPO_BRANCH: openwrt-21.02
+  FEEDS_CONF: feeds.conf.default
+  CONFIG_FILE: padavanonly/Redmi-AX6000/.config
+  DIY_P1_SH: padavanonly/Redmi-AX6000/diy-part1.sh
+  DIY_P2_SH: padavanonly/Redmi-AX6000/diy-part2.sh
+  SSH_ACTIONS: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+  ###############改名字##############
+  OPENWRT_NAME: RedmiAx6000
 
 jobs:
   build:
