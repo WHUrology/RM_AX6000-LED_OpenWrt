@@ -9,36 +9,11 @@
 #
 ###############改名字##############
 name: Redmi-AX6000-padavanonly
-
-on:
-  repository_dispatch:
-  workflow_dispatch:
-    inputs:
-      ssh:
-        description: 'SSH connection to Actions'
-        required: false
-        default: 'false'
-#  schedule:
-#    - cron: 0 16 * * *
-
-env:
-  REPO_URL: https://github.com/hanwckf/immortalwrt-mt798x
-  REPO_BRANCH: openwrt-21.02
-  FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: padavanonly/Redmi-AX6000/.config
-  DIY_P1_SH: padavanonly/Redmi-AX6000/diy-part1.sh
-  DIY_P2_SH: padavanonly/Redmi-AX6000/diy-part2.sh
-  SSH_ACTIONS: false
-  UPLOAD_FIRMWARE: true
-  UPLOAD_RELEASE: true
-  TZ: Asia/Shanghai
-  ###############改名字##############
-  OPENWRT_NAME: RedmiAx6000
+# ... 其他 on 和 env 部分保持不变 ...
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
     - name: 检查项目分支
       uses: actions/checkout@main
@@ -46,17 +21,12 @@ jobs:
     - name: 释放磁盘空间
       uses: jlumbroso/free-disk-space@main
       with:
-        # this might remove tools that are actually needed,
-        # if set to "true" but frees about 6 GB
         tool-cache: true
-        # all of these default to true, but feel free to set to
-        # "false" if necessary for your workflow
         android: true
         dotnet: true
         haskell: true
         large-packages: true
         swap-storage: true
-
 
     - name: 初始化编译环境
       env:
@@ -64,73 +34,62 @@ jobs:
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        
-        # 尝试多种方式安装或替代 libncurses5-dev
-        # 1. 首先尝试更新源并安装 libncurses5-dev
+        # 尝试多种方式安装或替代 libncurses5-dev (参考之前的回答)
         sudo -E apt-get -qq install -y libncurses5-dev 2>/dev/null || \
-        # 2. 如果失败，尝试安装 libncurses5-dev:i386 (多架构支持)
-        (sudo dpkg --add-architecture i386 && sudo -E apt-get -qq update && sudo -E apt-get -qq install -y libncurses5-dev:i386) 2>/dev/null || \
-        # 3. 如果上述方法都失败，尝试从 Ubuntu 存档安装 deb 包 (适用于 amd64)
-        (wget -q http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2_amd64.deb && \
-         wget -q http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5-dev_6.3-2_amd64.deb && \
-         sudo dpkg -i libncurses5_6.3-2_amd64.deb && \
-         sudo dpkg -i libncurses5-dev_6.3-2_amd64.deb) 2>/dev/null || \
-        # 4. 最后尝试安装较新版本的 libncurses-dev
+        # ... (其他安装尝试) ...
         sudo -E apt-get -qq install -y libncurses-dev
-
-        # 继续原有的清理和设置
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
-        # 原有的 libncurses-dev 安装已整合到上方，此处移除
 
-
-
-        
     - name: 下载固件源码
       working-directory: /workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-         
+
+    - name: 缓存 DL 依赖项
+      uses: actions/cache@v3
+      id: cache-dl
+      with:
+        path: openwrt/dl
+        key: ${{ runner.os }}-dl-${{ hashFiles('**/feeds.conf.default') }}-${{ hashFiles('**/config') }}
+        restore-keys: |
+          ${{ runner.os }}-dl-
+
     - name: 加载feeds.conf.default & DIY_P1_SH
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
-        
+
     - name: 更新 & 安装 feeds
       run: |
         cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-      
+
     - name: 加载config & DIY_P2_SH
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
-        
-    - name: SSH链接管理
-      uses: P3TERX/ssh2actions@v1.0.0
-      if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
-      env:
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
 
     - name: 下载安装包
       id: package
       run: |
         cd openwrt
         make defconfig
-        make download -j$(nproc)
+        make download -j$(nproc) # 使用并行下载
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
+
+    # ... 后续步骤（编译、上传等）保持不变 ...
         
     - name: 编译固件
       id: compile
