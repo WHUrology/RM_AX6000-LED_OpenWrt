@@ -65,12 +65,29 @@ jobs:
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
         
+        # 尝试多种方式安装或替代 libncurses5-dev
+        # 1. 首先尝试更新源并安装 libncurses5-dev
+        sudo -E apt-get -qq install -y libncurses5-dev 2>/dev/null || \
+        # 2. 如果失败，尝试安装 libncurses5-dev:i386 (多架构支持)
+        (sudo dpkg --add-architecture i386 && sudo -E apt-get -qq update && sudo -E apt-get -qq install -y libncurses5-dev:i386) 2>/dev/null || \
+        # 3. 如果上述方法都失败，尝试从 Ubuntu 存档安装 deb 包 (适用于 amd64)
+        (wget -q http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2_amd64.deb && \
+         wget -q http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5-dev_6.3-2_amd64.deb && \
+         sudo dpkg -i libncurses5_6.3-2_amd64.deb && \
+         sudo dpkg -i libncurses5-dev_6.3-2_amd64.deb) 2>/dev/null || \
+        # 4. 最后尝试安装较新版本的 libncurses-dev
+        sudo -E apt-get -qq install -y libncurses-dev
+
+        # 继续原有的清理和设置
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
-        sudo apt-get install libncurses-dev
+        # 原有的 libncurses-dev 安装已整合到上方，此处移除
+
+
+
         
     - name: 下载固件源码
       working-directory: /workdir
