@@ -1,4 +1,8 @@
-# What's New:（20240122，21：04）
+# What's New:（20251125，22：48）
+更新了.config文件
+之前编译的文件没有包含passwall，其它功能正常。通过固件网页上传刷新sysupgrade固件测试通过。
+今日加入openclash和passwall，passwall2，测试哪个好用。
+所以重新编译固件。
 
 GitHub代码更新后导致Fork源代码无法运行，总是报错；整体逻辑没有问题，只有编译后改名以及标签命名等问题存在错误导致无法顺利完成云编译，本地编译没有问题。
 所以在Fork源代码后进行了相应的修改得到现在这个版本，只需要Fork我这个仓库过去，直接选择Actions，左边的Redmi-AX6000-padavanonly.yml，选中后在右侧会出现Runworkflow，直接运行，等待大约3-4小时，固件编译完成后会自动上传到Release。
