@@ -84,6 +84,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dl-
 
+  # 添加步骤：删除feeds.conf.default
+      - name: Delete feeds.conf.default
+        run: |
+          if [ -f feeds.conf.default ]; then
+            rm feeds.conf.default
+            echo "feeds.conf.default has been deleted."
+          else
+            echo "feeds.conf.default does not exist."
+          fi
+
     - name: 加载feeds.conf.default & DIY_P1_SH
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
